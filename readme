@@ -1,0 +1,156 @@
+# Twitter Bot Oluşturma ve Yönetme Rehberi
+
+Bu rehber, bir Twitter botu oluşturmak ve birden fazla hesabı yönetmek için temel adımları içermektedir. **Yasal ve etik sınırlar içinde çalıştığınızdan emin olun.**
+
+---
+
+## Gereklilikler
+
+### Yazılım ve Araçlar
+- **Python**: Bot geliştirme için kullanılacak programlama dili.
+- **Kütüphaneler**:
+  - `tweepy`: Twitter API ile entegrasyon.
+  - `selenium`: Web otomasyonu gerekirse.
+  - `requests`: API çağrıları yapmak için.
+  - `random`: Rastgele değer oluşturmak için.
+  - `re`: Gelen onay kodunu işlemek için düzenli ifadeler.
+  - `sqlite3` veya diğer veritabanı kütüphaneleri.
+
+### Platform Gereklilikleri
+1. Twitter Developer Hesabı oluşturun.
+2. Uygulamanız için API anahtarlarını alın:
+   - API Key ve API Secret Key.
+   - Access Token ve Access Token Secret.
+
+### Ek Araçlar
+- **Geçici E-Posta Servisleri**: Hesap oluştururken kullanılacak geçici e-posta adresleri için bir API (örn. [10 Minute Mail](https://10minutemail.com)).
+- **Proxy**: IP adreslerini farklılaştırmak için hizmetler (örn. [Bright Data](https://brightdata.com), [ProxyScrape](https://proxyscrape.com), veya [ScraperAPI](https://www.scraperapi.com)).
+
+---
+
+## Proxy Kullanımı
+### Proxy Kaynağı
+- Proxy hizmeti sağlayan platformlardan birini kullanın:
+  - **Üretli Proxyler**: Bright Data, Oxylabs, ScraperAPI.
+  - **Ücretsiz Proxyler**: ProxyScrape, Free Proxy List. (Stabilite ve hız sorunları olabilir.)
+
+### Proxy Kullanarak API Bağlantısı
+```python
+import requests
+
+proxy = {
+    "http": "http://your_proxy_address",
+    "https": "https://your_proxy_address",
+}
+
+response = requests.get("https://twitter.com", proxies=proxy)
+print(response.status_code)
+```
+---
+
+## Roadmap: Projenin Adımları
+
+### 1. Hazırlık Aşaması
+#### Gereklilikler:
+- Python kurulumu ve kütüpanelerin yüklenmesi:
+  ```bash
+  pip install tweepy selenium requests
+  ```
+- Twitter Developer hesabı oluşturun ve API anahtarlarını alın.
+- Geçici e-posta ve proxy hizmetlerini test edin.
+
+---
+
+### 2. Hesap Oluşturma
+1. **Geçici E-Posta Alın**:
+   ```python
+   import requests
+
+   response = requests.get("https://api.10minutemail.com/v1/mailbox")
+   email_data = response.json()
+   email_address = email_data["address"]
+   print(f"Temporary email: {email_address}")
+   ```
+
+2. **Selenium ile Twitter Hesabı Oluşturun**:
+   - Twitter kayıt formunu doldurup e-posta adresini girin.
+   - Rastgele üretilecek username ve password kullanın:
+     ```python
+     import random
+
+     username = f"user{random.randint(1000, 9999)}"
+     password = f"pass{random.randint(1000, 9999)}"
+     ```
+
+3. **Onay Kodu Alma**:
+   ```python
+   import time
+
+   time.sleep(10)  # Bekleme süresi
+   verification_email = requests.get(f"https://api.10minutemail.com/v1/mailbox/{email_data['id']}/messages").json()
+   verification_code = re.search(r"\d{6}", verification_email["body"]).group()
+   print(f"Verification Code: {verification_code}")
+   ```
+
+4. **Hesap Bilgilerini Kaydet**:
+   ```python
+   import sqlite3
+
+   conn = sqlite3.connect('accounts.db')
+   cursor = conn.cursor()
+   cursor.execute('''CREATE TABLE IF NOT EXISTS accounts (username TEXT, password TEXT, email TEXT)''')
+   cursor.execute('INSERT INTO accounts VALUES (?, ?, ?)', (username, password, email_address))
+   conn.commit()
+   conn.close()
+   ```
+
+---
+
+### 3. Multi-Account Yönetimi
+#### Hesapları Listeleme:
+Hesap bilgilerini veri tabanından çekin:
+```python
+conn = sqlite3.connect('accounts.db')
+cursor = conn.cursor()
+cursor.execute('SELECT * FROM accounts')
+accounts = cursor.fetchall()
+for account in accounts:
+    print(account)
+conn.close()
+```
+
+#### Takip Fonksiyonu:
+```python
+def follow_account(api, target_username):
+    try:
+        user = api.get_user(screen_name=target_username)
+        api.create_friendship(user.id)
+        print(f"Now following {target_username}")
+    except tweepy.TweepError as e:
+        print(f"Error: {e}")
+```
+
+#### Beğeni ve Retweet:
+```python
+def like_and_retweet(api, tweet_id):
+    try:
+        api.create_favorite(tweet_id)
+        api.retweet(tweet_id)
+        print(f"Tweet {tweet_id} liked and retweeted.")
+    except tweepy.TweepError as e:
+        print(f"Error: {e}")
+```
+
+---
+
+### 4. Operasyonel Aşama
+1. **Hesap Oluşturma:** E-posta adreslerini kullanarak hesapları otomatik oluşturun ve kaydedin.
+2. **API Kullanımı:** Hesapların API anahtarları ile doğru şekilde bağlantı yapın.
+3. **Multi-Account Otomasyon:** Tüm hesaplarda aynı anda işlem yapabilmek için `threading` veya `asyncio` kullanın.
+
+---
+
+## Kaynaklar
+- [Twitter API Resmi Dokümaları](https://developer.twitter.com/en/docs)
+- [Tweepy Kütüphanesi Dokümantasyonu](https://docs.tweepy.org/en/stable/)
+
