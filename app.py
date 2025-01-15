@@ -3,7 +3,8 @@ import requests
 from account_creator import AccountCreator
 import os
 
-app = Flask(__name__)
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'templates'))
+app = Flask(__name__, template_folder=template_dir)
 
 PROXY_CONFIG = {
     'host': 'proxy.toolip.io',
